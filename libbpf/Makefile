@@ -12,21 +12,21 @@ clean:
 
 # `sudo` required
 trace_pipe:
-	cat /sys/kernel/debug/tracing/trace_pipe
+	sudo cat /sys/kernel/debug/tracing/trace_pipe
 
 # `sudo` required
 trace:
-	cat /sys/kernel/debug/tracing/trace
+	sudo cat /sys/kernel/debug/tracing/trace
 
 # `sudo` required
 hello_world: hello_world.o hello_world.bpf.o
-	./hello_world.o
+	sudo ./hello_world.o
 
 %.bpf.o : %.bpf.c
 	clang \
 	  -target bpf \
 		-I/usr/include/x86_64-linux-gnu \
-		-O1 \
+		-O2 \
 		-o $@ \
 		-c $(filter %.c, $^)
 

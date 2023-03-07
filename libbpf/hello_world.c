@@ -12,7 +12,7 @@ int main() {
   bool _load = false;
   libbpf_set_print(libbpf_print);
 
-  __auto_type obj = bpf_object__open_file("minimal.bpf.o", NULL);
+  __auto_type obj = bpf_object__open_file("hello_world.bpf.o", NULL);
 
   __auto_type err = bpf_object__load(obj);
   if (err) {
