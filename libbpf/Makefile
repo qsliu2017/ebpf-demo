@@ -3,9 +3,9 @@
 .PHONY: \
 	all clean \
 	trace trace_pipe \
-	hello_world
+	hello_world double_attach
 
-all: hello_world
+all: hello_world double_attach
 
 clean:
 	rm *.o
@@ -21,6 +21,8 @@ trace:
 # `sudo` required
 hello_world: hello_world.o hello_world.bpf.o
 	sudo ./hello_world.o
+double_attach: double_attach.o double_attach.bpf.o
+	sudo ./double_attach.o
 
 %.bpf.o : %.bpf.c
 	clang \
