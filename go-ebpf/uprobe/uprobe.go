@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
+	"debug/elf"
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 
@@ -17,8 +18,6 @@ import (
 
 //go:embed uprobe.bpf.o
 var _bpfBytes []byte
-
-var binPath string = "/usr/local/pgsql/bin/postgres"
 
 type bpfSpec struct {
 	Uprobe *ebpf.ProgramSpec `ebpf:"uprobe"`
@@ -36,7 +35,16 @@ type event struct {
 	Cookie uint64
 }
 
+var (
+	pid     int
+	binPath string
+)
+
 func init() {
+	flag.IntVar(&pid, "pid", 0, "")
+	flag.StringVar(&binPath, "bin", "", "")
+
+	flag.Parse()
 }
 
 func main() {
@@ -64,22 +72,29 @@ func main() {
 	var probeCnt int
 	probeName := make(map[int]string)
 
-	r := bufio.NewReader(os.Stdin)
-	for {
-		symname, _, err := r.ReadLine()
-		if err != nil {
-			break
+	f, err := elf.Open("/usr/local/pgsql/bin/postgres")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	symbols, err := f.Symbols()
+	if err != nil {
+		panic(err)
+	}
+	for _, sym := range symbols {
+		if sym.Info != byte(elf.STT_FUNC) {
+			continue
 		}
-		link, err := exec.Uprobe(string(symname), obj.Uprobe, &link.UprobeOptions{Cookie: uint64(probeCnt)})
+		link, err := exec.Uprobe(sym.Name, obj.Uprobe, &link.UprobeOptions{Cookie: uint64(probeCnt), PID: pid})
 		if err != nil {
 			fmt.Printf("%v", err)
 		}
 		defer link.Close()
-		probeName[probeCnt] = string(symname)
+		probeName[probeCnt] = sym.Name
 		probeCnt++
 	}
 
-	rd, err := perf.NewReader(obj.Events, os.Getpagesize())
+	rd, err := perf.NewReader(obj.Events, os.Getpagesize()*(1<<6))
 	if err != nil {
 		panic(err)
 	}
